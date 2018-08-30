@@ -15,7 +15,7 @@ Valgrind is a command-line program that by passing an executable file (as well a
 
 ## How-To-Run
 
-After compilation, and with the executable file of your program at hand, one must only pass the executable to valgrind as a parameter as such:
+After compilation, and with the executable file of your program at hand, one must only pass the executable to valgrind as a parameter, as such:
 
 `valgrind ./my_exec`
 
@@ -27,13 +27,13 @@ What this now produces is the full leak-check summary, as per the `leak-check` f
 
 ### Compilation sidenote
 
-Before running the executable file through valgrind, it might be wise to pass a debugging flag when compiling. For example, passing the `ggdb3` flag to __g++__ compiler will yield line numbers at which the leak(s) can possibly be originating from. 
+Before running the executable file through valgrind, it might be wise to pass a debugging flag when compiling. For example, passing the `ggdb3` flag to the __g++__ compiler will yield line numbers at which the leak(s) can possibly be originating from. 
 
 `g++ -ggdb3 -o my_exec file1.cpp`
 
 ## Interpreting Results (with example)
 
-Below is a quick snippet of __c++__ code that creates a singly-linked list, adds the values 0-9, then prints them out. It does not, however, appropriately free the memory allocated for the list object. 
+Below is a quick snippet of __c++__ code that creates a singly-linked list, adds the values 0-9, then prints them out. It does not, however, appropriately free the memory allocated for the __list__ object. 
 
 ```c++
 #include <iostream>
@@ -112,11 +112,70 @@ As we can see, some leaks occurred as we never freed the memory we allocated thr
 9
 ==22147==
 ```
-This portion of the "receipt" has basic information about valgrind, followed by any print outs the program might have had. In this case, we called the the __printList()__ function that printed out the contents of the list to the screen.
+This portion of the "receipt" has basic information about valgrind, followed by any print outs the program might have had. In this case, we called the __printList()__ function that printed out the contents of the list to the screen.
 
 ```
 ==22147== HEAP SUMMARY:
 ==22147==     in use at exit: 168 bytes in 11 blocks
 ==22147==   total heap usage: 13 allocs, 2 frees, 73,896 bytes allocated
 ```
-This __printList()__ function that printed out the contents of the list to the screen.
+Following that, we have the Heap Summary. This tells us how much memory was used during run-time.
+
+```
+==22147== 168 (8 direct, 160 indirect) bytes in 1 blocks are definitely lost in loss record 3 of 3
+==22147==    at 0x4C3017F: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==22147==    by 0x108A3E: main (test3.cpp:6)
+```
+This goes into more detail about the bytes we used, and states what was lost, by what, and where. The exact _where_ (line number) was made available through the use of the `ggdb3` flag during compilation.
+
+```
+==22147== LEAK SUMMARY:
+==22147==    definitely lost: 8 bytes in 1 blocks
+==22147==    indirectly lost: 160 bytes in 10 blocks
+==22147==      possibly lost: 0 bytes in 0 blocks
+==22147==    still reachable: 0 bytes in 0 blocks
+==22147==         suppressed: 0 bytes in 0 blocks
+==22147== 
+==22147== For counts of detected and suppressed errors, rerun with: -v
+==22147== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 0 from 0)
+```
+Finally, we have the Leak Summary, which tells us how much memory was lost. At the end, it provides the error count of the execution.
+
+If we fix the code (uncomment the __delete__ which calls the destructor with the proper deallocation method for a linked list)
+```c++
+delete MyList;
+```
+and allow for for the memory to be freed properly, we will receive the following valgrind "receipt":
+
+```
+==22349== Memcheck, a memory error detector
+==22349== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==22349== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==22349== Command: ./my_exec
+==22349== 
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+==22349== 
+==22349== HEAP SUMMARY:
+==22349==     in use at exit: 0 bytes in 0 blocks
+==22349==   total heap usage: 13 allocs, 13 frees, 73,896 bytes allocated
+==22349== 
+==22349== All heap blocks were freed -- no leaks are possible
+==22349== 
+==22349== For counts of detected and suppressed errors, rerun with: -v
+==22349== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+```
+
+As it shows, the program exited without any memory leaks.
+
+I encourage you to read more through the valgrind documentation using the `h` flag, which will provide more in depth use of the program:
+
+`valgrind -h`
