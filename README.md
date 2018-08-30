@@ -1,2 +1,2 @@
-# valgrind-tutorial
+Valgrind Basics
 Simple tutorial for Valgrind: a memory mismanagement detector
